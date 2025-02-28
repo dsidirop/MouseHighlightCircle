@@ -1,6 +1,6 @@
 ## Interface: 11200
 ## Title: MouseHighlightCircle
 ## Notes: Adds a white circle around the mouse cursor for better visibility.
-## Author: YourName
+## Author: goamania
 ## Version: 1.0
 MouseHighlightCircle.lua
