@@ -22,7 +22,7 @@ MouseHighlightCircle is a lightweight addon designed for Turtle WoW (Vanilla WoW
 5. Use `/mhc show` in-game to display the cursor ring.
 
 ## Texture Information
-The addon uses a single TGA texture (`pixelring.tga`) for the pixelated white ring. This texture must be a 32x32 pixel image with a transparent center and a white, pixelated border. If you need to customize the ring’s appearance, you can replace the `pixelring.tga` file with your own design (maintain the same dimensions and transparency).
+The addon uses a single TGA texture (`pixelring.tga`) for the pixelated white ring. This texture must be a 64x64 pixel image with a transparent center and a white, pixelated border. If you need to customize the ring’s appearance, you can replace the `pixelring.tga` file with your own design (maintain the same dimensions and transparency).
 
 ## Compatibility
 - Designed for Turtle WoW (Vanilla WoW 1.12.1 client).
