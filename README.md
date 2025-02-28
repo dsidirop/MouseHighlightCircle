@@ -15,7 +15,7 @@ MouseHighlightCircle is a lightweight addon designed for Turtle WoW (Vanilla WoW
   - `/mhc hide` - Hide the cursor ring.
 
 ## Installation
-1. Download the latest release from the [Releases](https://github.com/[YourUsername]/MouseHighlightCircle/releases) page.
+1. Download the latest release from the [Releases](https://github.com/goamania/MouseHighlightCircle/releases) page.
 2. Extract the `MouseHighlightCircle` folder into your `World of Warcraft/Interface/AddOns/` directory.
 3. Ensure the `pixelring.tga` texture file is included in the addon folder (required for the ring effect).
 4. Launch Turtle WoW, enable the addon in the AddOns menu, and log in.
@@ -29,7 +29,7 @@ The addon uses a single TGA texture (`pixelring.tga`) for the pixelated white ri
 - May work on other 1.12.1-based servers, but only tested on Turtle WoW.
 
 ## Contributing
-Feel free to fork this repository and submit pull requests if you’d like to contribute! Suggestions for new features (e.g., customizable ring size, colors, or combat-only toggle) are always welcome. If you encounter any bugs, please open an issue on the [Issues](https://github.com/[YourUsername]/MouseHighlightCircle/issues) page.
+Feel free to fork this repository and submit pull requests if you’d like to contribute! Suggestions for new features (e.g., customizable ring size, colors, or combat-only toggle) are always welcome. If you encounter any bugs, please open an issue on the [Issues](https://github.com/goamania/MouseHighlightCircle/issues) page.
 
 ## Credits
 Developed with ❤️ by goamania for the Turtle WoW community.
