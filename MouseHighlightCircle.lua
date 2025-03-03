@@ -41,12 +41,12 @@ SLASH_MHC1 = "/mhc"
 SlashCmdList["MHC"] = function(msg)
     if msg == "hide" then
         circle:Hide()
-        print("MouseHighlightCircle gizlendi.")
+        print("MouseHighlightCircle hidden.")
     elseif msg == "show" then
         circle:Show()
-        print("MouseHighlightCircle gösterildi.")
+        print("MouseHighlightCircle shown.")
     else
-        print("/mhc show - Halkayı göster")
-        print("/mhc hide - Halkayı gizle")
+        print("/mhc show - Show circle")
+        print("/mhc hide - Hide circle")
     end
 end
