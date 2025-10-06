@@ -1,6 +1,7 @@
 -- MouseHighlightCircle.lua
 
 local frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
+frame:SetFrameStrata("HIGH")
 
 local circle = frame:CreateTexture(nil, "OVERLAY")
 
