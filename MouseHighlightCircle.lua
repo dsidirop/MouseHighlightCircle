@@ -26,15 +26,27 @@ circle:SetHeight(32)
 circle:SetVertexColor(1, 1, 1, 0.7) -- translucent white
 
 -- track mouse movements
-frame:SetScript("OnUpdate", function(self, elapsed)
+local _lastX, _lastY, _uiScale= -999999, -999999, nil
+frame:SetScript("OnUpdate", function()
     local x, y = GetCursorPosition()
-    local uiScale = UIParent:GetEffectiveScale()
-    x = x / uiScale
-    y = y / uiScale
+    if x == _lastX and y == _lastY then
+        return -- mouse hasn't moved   do nothing
+    end
+    
+    if _uiScale == nil then
+        _uiScale = UIParent:GetEffectiveScale() -- snipe once
+        if _uiScale == nil or _uiScale <= 0 then
+            _uiScale = 1 -- failsafe
+            print("[WARNING] [MouseHighlightCircle] GetEffectiveScale() returned unusable value '" .. tostring(_uiScale or "nil") .. "' - assuming ui-scale=1 and hoping for the best but please report this incident and what you did to cause it.")
+        end
+    end
+    
+    _lastX, _lastY = x, y -- order
+    x = x / _uiScale -- order
+    y = y / _uiScale -- order
 
-    -- place the ring on the mouse position
-    circle:ClearAllPoints()
-    circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
+    -- circle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
+    circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
 end)
 
 -- show ring when addon is installed
