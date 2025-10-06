@@ -43,10 +43,10 @@ circle:Show()
 SLASH_MHC1 = "/mhc"
 SlashCmdList["MHC"] = function(msg)
     if msg == "hide" then
-        circle:Hide()
+        frame:Hide()
         print("MouseHighlightCircle hidden.")
     elseif msg == "show" then
-        circle:Show()
+        frame:Show()
         print("MouseHighlightCircle shown.")
     else
         print("/mhc show - Show circle")
