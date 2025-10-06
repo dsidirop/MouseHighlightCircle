@@ -114,8 +114,8 @@ circle:SetVertexColor(_settings.Reticle.Color[1], _settings.Reticle.Color[2], _s
 local _lastX, _lastY, _uiScale = -999999, -999999, nil
 frame:SetScript("OnUpdate", function()
     local x, y = GetCursorPosition()
-    if x == _lastX and y == _lastY then
-        return -- mouse hasnt moved   do nothing
+    if x == nil or y == nil or (abs(x - _lastX) <= 1 and abs(y - _lastY) <= 1) then
+        return -- mouse hasnt moved that much   do nothing
     end
 
     if _uiScale == nil then
