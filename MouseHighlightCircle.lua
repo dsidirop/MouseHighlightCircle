@@ -2,6 +2,7 @@
 
 local _tostring = tostring
 local _tonumber = tonumber
+local _strupper = string.upper
 local _strlower = string.lower
 local _strmatch = string.match
 
@@ -99,8 +100,8 @@ SlashCmdList["MHC"] = function(msg)
         return
     end
 
-    local desiredReticleDiameterInPixelsStringified, matches = string.gsub(msg, "^%s*size%s+(%S*)%s*$", "%1")
-    if matches > 0 then
+    local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = string.gsub(msg, "^%s*size%s+(%S*)%s*$", "%1")
+    if isSetSizeCommand ~= nil and isSetSizeCommand > 0 then
         local newReticleDiameter = _tonumber(desiredReticleDiameterInPixelsStringified)
         if newReticleDiameter == nil or newReticleDiameter <= 0 then
             _print("Invalid size value '" .. _tostring(desiredReticleDiameterInPixelsStringified or "nil") .. "' - please provide a positive number.")
@@ -110,6 +111,26 @@ SlashCmdList["MHC"] = function(msg)
         circle:SetWidth(newReticleDiameter)
         circle:SetHeight(newReticleDiameter)
         _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels.")
+        return
+    end
+
+    local desiredStrata, isSetStrataCommand = string.gsub(msg, "^%s*strata%s+(%S*)%s*$", "%1")
+    if isSetStrataCommand ~= nil and isSetStrataCommand > 0 then
+        desiredStrata = _strupper(_strtrim(desiredStrata or ""))
+        if desiredStrata ~= "BACKGROUND" -- lowest
+                and desiredStrata ~= "LOW"
+                and desiredStrata ~= "MEDIUM"
+                and desiredStrata ~= "HIGH"
+                and desiredStrata ~= "DIALOG"
+                and desiredStrata ~= "FULLSCREEN" 
+                and desiredStrata ~= "FULLSCREEN_DIALOG"
+                and desiredStrata ~= "TOOLTIP" then -- highest
+            _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - please provide one of the following values: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
+            return
+        end
+
+        frame:SetFrameStrata(desiredStrata)
+        _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
         return
     end
     
@@ -124,5 +145,6 @@ SlashCmdList["MHC"] = function(msg)
     _print("  /mhc off  - Hide the reticle")
     _print("  /mhc hide - Same as 'off'")
 
-    _print("  /mhc size <pixels> - Set the diameter of the reticle")
+    _print("  /mhc size   <pixels> - Set the diameter of the reticle")
+    _print("  /mhc strata <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
 end

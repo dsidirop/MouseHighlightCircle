@@ -11,8 +11,12 @@ MouseHighlightCircle is a lightweight addon designed for Turtle WoW (Vanilla WoW
 - Follows the mouse cursor smoothly in real-time.
 - Lightweight and optimized for Turtle WoW’s 1.12.1 client.
 - Slash commands for easy control:
-  - `/mhc show` - Show the cursor ring.
-  - `/mhc hide` - Hide the cursor ring.
+  - `/mhc on`   - Show the reticle
+  - `/mhc show` - Same as 'on'
+  - `/mhc off`  - Hide the reticle
+  - `/mhc hide` - Same as 'off'
+  - `/mhc size`   <pixels> - Set the diameter of the reticle
+  - `/mhc strata` <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)
 
 ## Installation
 1. Download the latest release from the [Releases](https://github.com/goamania/MouseHighlightCircle/releases) page.
