@@ -5,12 +5,14 @@ frame:SetFrameStrata("HIGH")
 
 local circle = frame:CreateTexture(nil, "OVERLAY")
 
+local overlayImage = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga"
+
 -- set ring texture (pixelated, white edge, transparent center)
-circle:SetTexture("Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga")
+circle:SetTexture(overlayImage)
 
 -- if the texture is not found print an error and use a placeholder texture
 if not circle:GetTexture() then
-    print("MouseHighlightCircle: pixelring.tga bulunamadı. Lütfen dosyayı Interface\\AddOns\\MouseHighlightCircle\\ klasörüne yerleştirin.")
+    print("MouseHighlightCircle: Mouse-overlay image was not found on disk - make sure the file '" .. overlayImage .. "' exists in the filesystem.")
     circle:SetTexture(1, 1, 1, 0.7) -- temporarily a white square (for debugging)
     circle:SetWidth(32)
     circle:SetHeight(32)
