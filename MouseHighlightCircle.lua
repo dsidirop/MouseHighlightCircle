@@ -1,42 +1,42 @@
 -- MouseHighlightCircle.lua
 
--- Addon başlatıldığında çalıştır
 local frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
+
 local circle = frame:CreateTexture(nil, "OVERLAY")
 
--- Halka texture’ını ayarla (pikselli, beyaz kenar, şeffaf orta)
-circle:SetTexture("Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga") -- Özel pikselli halka texture’ı
+-- set ring texture (pixelated, white edge, transparent center)
+circle:SetTexture("Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga")
 
--- Eğer texture bulunamazsa, bir hata mesajı göster
+-- if the texture is not found print an error and use a placeholder texture
 if not circle:GetTexture() then
     print("MouseHighlightCircle: pixelring.tga bulunamadı. Lütfen dosyayı Interface\\AddOns\\MouseHighlightCircle\\ klasörüne yerleştirin.")
-    circle:SetTexture(1, 1, 1, 0.7) -- Geçici olarak beyaz bir kare (hata ayıklama için)
+    circle:SetTexture(1, 1, 1, 0.7) -- temporarily a white square (for debugging)
     circle:SetWidth(32)
     circle:SetHeight(32)
 end
 
--- Texture boyutlarını ve konumunu ayarla
-circle:SetWidth(32) -- Dış çap
-circle:SetHeight(32) -- Dış çap
-circle:SetVertexColor(1, 1, 1, 0.7) -- Yarı saydam beyaz
+-- adjust texture dimensions and position
+circle:SetWidth(32)
+circle:SetHeight(32)
+circle:SetVertexColor(1, 1, 1, 0.7) -- translucent white
 
--- Fare hareketlerini takip et
+-- track mouse movements
 frame:SetScript("OnUpdate", function(self, elapsed)
     local x, y = GetCursorPosition()
     local uiScale = UIParent:GetEffectiveScale()
     x = x / uiScale
     y = y / uiScale
 
-    -- Halkayı fare pozisyonuna yerleştir
+    -- place the ring on the mouse position
     circle:ClearAllPoints()
     circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y)
 end)
 
--- Addon yüklendiğinde halkayı göster
+-- show ring when addon is installed
 frame:Show()
 circle:Show()
 
--- Slash komutları ekle (isteğe bağlı, ayarlar için)
+-- add slash commands (optional, for settings)
 SLASH_MHC1 = "/mhc"
 SlashCmdList["MHC"] = function(msg)
     if msg == "hide" then
