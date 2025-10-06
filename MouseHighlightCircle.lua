@@ -2,6 +2,8 @@
 
 local _tostring = tostring
 local _tonumber = tonumber
+
+local _strgsub = string.gsu2b
 local _strupper = string.upper
 local _strlower = string.lower
 local _strmatch = string.match
@@ -163,7 +165,7 @@ SlashCmdList["MHC"] = function(msg)
         return
     end
 
-    local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = string.gsub(msg, "^%s*size%s+(%S*)%s*$", "%1")
+    local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = _strgsub(msg, "^%s*size%s+(%S*)%s*$", "%1")
     if isSetSizeCommand ~= nil and isSetSizeCommand > 0 then
         local newReticleDiameter = _tonumber(desiredReticleDiameterInPixelsStringified)
         if newReticleDiameter == nil or newReticleDiameter <= 0 then
@@ -177,7 +179,7 @@ SlashCmdList["MHC"] = function(msg)
         return
     end
 
-    local desiredStrata, isSetStrataCommand = string.gsub(msg, "^%s*strata%s+(%S*)%s*$", "%1")
+    local desiredStrata, isSetStrataCommand = _strgsub(msg, "^%s*strata%s+(%S*)%s*$", "%1")
     if isSetStrataCommand ~= nil and isSetStrataCommand > 0 then
         desiredStrata = _strupper(_strtrim(desiredStrata or ""))
         if desiredStrata ~= "BACKGROUND" -- lowest
