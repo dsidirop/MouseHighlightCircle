@@ -1,7 +1,9 @@
 -- MouseHighlightCircle.lua
 
 local frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
-frame:SetFrameStrata("HIGH")
+
+frame:SetFrameStrata("TOOLTIP") -- if we need the overlay to be above any and all ui elements    should be what most users want on 4k monitors
+-- frame:SetFrameStrata("HIGH") -- if we need the overlay to be above most UI elements but not above dialogs such as the pfui-configuration dialog
 
 local circle = frame:CreateTexture(nil, "OVERLAY")
 
