@@ -68,6 +68,16 @@ frame:SetScript("OnUpdate", function()
     circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
 end)
 
+frame:RegisterEvent("PLAYER_LOGIN")
+frame:SetScript("OnEvent", function()
+    local eventSnapshot = event
+
+    if eventSnapshot == "PLAYER_LOGIN" then
+        -- initialize or reset variables that might change on relog
+        _uiScale = nil -- force re-sniping of ui-scale on next mouse-move
+    end
+end)
+
 -- show ring when addon is installed
 frame:Show()
 circle:Show()
