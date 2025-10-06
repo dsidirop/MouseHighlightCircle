@@ -50,7 +50,7 @@ local _lastX, _lastY, _uiScale = -999999, -999999, nil
 frame:SetScript("OnUpdate", function()
     local x, y = GetCursorPosition()
     if x == _lastX and y == _lastY then
-        return -- mouse hasn't moved   do nothing
+        return -- mouse hasnt moved   do nothing
     end
 
     if _uiScale == nil then
@@ -76,6 +76,8 @@ frame:SetScript("OnEvent", function()
     if eventSnapshot == "PLAYER_LOGIN" then
         -- initialize or reset variables that might change on relog
         _uiScale = nil -- force re-sniping of ui-scale on next mouse-move
+
+        _print("Loaded - type |cff33ff99/mhc|r for a list of supported commands.")
     end
 end)
 
