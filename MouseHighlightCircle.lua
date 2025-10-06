@@ -3,7 +3,7 @@
 local _tostring = tostring
 local _tonumber = tonumber
 
-local _strgsub = string.gsu2b
+local _strgsub = string.gsub
 local _strupper = string.upper
 local _strlower = string.lower
 local _strmatch = string.match
@@ -73,7 +73,7 @@ local _settings = {
 
 local function _print(msg, r, g, b, id)
     DEFAULT_CHAT_FRAME:AddMessage(
-            "[|cff33ff99MouseHighlightCircle|r] " .. msg,
+            "[|cff33ff99MHC|r] " .. msg,
             r ~= nil and r or _namedColors.LIGHT_GREEN[1],
             g ~= nil and g or _namedColors.LIGHT_GREEN[2],
             b ~= nil and b or _namedColors.LIGHT_GREEN[3],
