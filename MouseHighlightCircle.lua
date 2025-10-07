@@ -148,90 +148,102 @@ frame:SetScript("OnEvent", function()
 end)
 frame:RegisterEvent("PLAYER_LOGIN")
 
--- add slash commands (optional, for settings)
-SLASH_MHC1 = "/mhc"
-SlashCmdList["MHC"] = function(msg)
-    local msgLowercased = _strlower(_strtrim(msg or ""))
-
+function _processPossibleCommandFor_ShowOrHide(msgLowercased)
     if msgLowercased == "hide" or msgLowercased == "off" then
         frame:Hide()
         _print("Reticle Off")
-        return
+        return true
     end
 
     if msgLowercased == "show" or msgLowercased == "on" then
         frame:Show()
         _print("Reticle On")
-        return
+        return true
     end
 
-    local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = _strgsub(msg, "^%s*size%s+(%S*)%s*$", "%1")
-    if isSetSizeCommand ~= nil and isSetSizeCommand > 0 then
-        local newReticleDiameter = _tonumber(desiredReticleDiameterInPixelsStringified)
-        if newReticleDiameter == nil or newReticleDiameter <= 0 then
-            _print("Invalid size value '" .. _tostring(desiredReticleDiameterInPixelsStringified or "nil") .. "' - please provide a positive number.")
-            return
-        end
+    return false
+end
 
-        circle:SetWidth(newReticleDiameter)
-        circle:SetHeight(newReticleDiameter)
-        _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels.")
-        return
+function _processPossibleCommandFor_SetSize(msgLowercased)
+    local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = _strgsub(msgLowercased, "^%s*size%s+(%S*)%s*$", "%1")
+    if isSetSizeCommand == nil or isSetSizeCommand == 0 then
+        return false
     end
 
-    local desiredStrata, isSetStrataCommand = _strgsub(msg, "^%s*strata%s+(%S*)%s*$", "%1")
-    if isSetStrataCommand ~= nil and isSetStrataCommand > 0 then
-        desiredStrata = _strupper(_strtrim(desiredStrata or ""))
-        if desiredStrata ~= "BACKGROUND" -- lowest
-                and desiredStrata ~= "LOW"
-                and desiredStrata ~= "MEDIUM"
-                and desiredStrata ~= "HIGH"
-                and desiredStrata ~= "DIALOG"
-                and desiredStrata ~= "FULLSCREEN"
-                and desiredStrata ~= "FULLSCREEN_DIALOG"
-                and desiredStrata ~= "TOOLTIP" then
-            -- highest
-            _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - must be one of: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
-            return
-        end
-
-        frame:SetFrameStrata(desiredStrata)
-        _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
-        return
+    local newReticleDiameter = _tonumber(desiredReticleDiameterInPixelsStringified)
+    if newReticleDiameter == nil or newReticleDiameter <= 0 then
+        _print("Invalid size value '" .. _tostring(desiredReticleDiameterInPixelsStringified or "nil") .. "' - please provide a positive number.")
+        return true
     end
 
-    local desiredNamedColor, isSetColorCommand = _strgsub(msg, "^%s*color%s+(%S*).*$", "%1")
-    if isSetColorCommand ~= nil and isSetColorCommand > 0 then
-        local colorRgbArray = _namedColors[_strupper(_strtrim(desiredNamedColor or ""))]
-        if colorRgbArray == nil then
-            _print("Unsupported named-color '" .. _tostring(desiredNamedColor or "nil") .. "' - must be one of the supported color names")
-            return
-        end
-        
-        _settings.Reticle.Color = colorRgbArray -- update the current settings
+    circle:SetWidth(newReticleDiameter)
+    circle:SetHeight(newReticleDiameter)
+    _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels.")
+    return true
+end
 
-        local desiredColorAlpha        
-        local desiredColorAlphaString, hasColorAlpha = _strgsub(msg, "^%s*color%s+(%S+)%s+(%S+)%s*$", "%2")
-        
-        _print("** hasColorAlpha: " .. _tostring(hasColorAlpha or "nil") .. ", desiredColorAlphaString=" .. _tostring(desiredColorAlphaString or "nil")) -- debug
-        
-        if hasColorAlpha ~= nil and hasColorAlpha > 0 then -- optional alpha value
-            desiredColorAlpha = _tonumber(_strtrim(desiredColorAlphaString or ""))
-            if desiredColorAlpha == nil or desiredColorAlpha < 0 or desiredColorAlpha > 100 then
-                _print("Invalid alpha value '" .. _tostring(desiredColorAlpha or "nil") .. "' - must be between [0, 100]")
-                return
-            end
-
-            desiredColorAlpha = desiredColorAlpha / 100 -- convert to [0.0, 1.0] range
-            _settings.Reticle.Alpha = desiredColorAlpha -- and update the current settings
-        end
-        
-        circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
-        
-        _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
-        return
+function _processPossibleCommandFor_SetStrata(msgLowercased)
+    local desiredStrata, isSetStrataCommand = _strgsub(msgLowercased, "^%s*strata%s+(%S*)%s*$", "%1")
+    if isSetStrataCommand == nil or isSetStrataCommand == 0 then
+        return false
     end
 
+    desiredStrata = _strupper(_strtrim(desiredStrata or ""))
+    if desiredStrata ~= "BACKGROUND" -- lowest
+            and desiredStrata ~= "LOW"
+            and desiredStrata ~= "MEDIUM"
+            and desiredStrata ~= "HIGH"
+            and desiredStrata ~= "DIALOG"
+            and desiredStrata ~= "FULLSCREEN"
+            and desiredStrata ~= "FULLSCREEN_DIALOG"
+            and desiredStrata ~= "TOOLTIP" then
+        -- highest
+        _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - must be one of: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
+        return true
+    end
+
+    frame:SetFrameStrata(desiredStrata)
+    _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
+    return true
+end
+
+function _processPossibleCommandFor_SetColor(msgLowercased)
+    local desiredNamedColor, isSetColorCommand = _strgsub(msgLowercased, "^%s*color%s+(%S*).*$", "%1")
+    if isSetColorCommand == nil or isSetColorCommand == 0 then
+        return false
+    end
+
+    local colorRgbArray = _namedColors[_strupper(_strtrim(desiredNamedColor or ""))]
+    if colorRgbArray == nil then
+        _print("Unsupported named-color '" .. _tostring(desiredNamedColor or "nil") .. "' - must be one of the supported color names")
+        return true
+    end
+
+    local desiredColorAlpha
+    local desiredColorAlphaString, hasColorAlpha = _strgsub(msgLowercased, "^%s*color%s+(%S+)%s+(%S+)%s*$", "%2")
+
+    if hasColorAlpha ~= nil and hasColorAlpha > 0 then -- optional alpha value
+        desiredColorAlpha = _tonumber(_strtrim(desiredColorAlphaString or ""))
+        if desiredColorAlpha == nil or desiredColorAlpha < 0 or desiredColorAlpha > 100 then
+            _print("Invalid alpha value '" .. _tostring(desiredColorAlpha or "nil") .. "' - must be between [0, 100]")
+            return true
+        end
+
+        desiredColorAlpha = desiredColorAlpha / 100 -- convert to [0.0, 1.0] range
+    else
+        desiredColorAlpha = _settings.Reticle.Alpha -- use the existing alpha value from the current settings
+    end
+
+    _settings.Reticle.Color = colorRgbArray --     update the current settings
+    _settings.Reticle.Alpha = desiredColorAlpha -- update the current settings
+
+    circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
+
+    _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
+    return true
+end
+
+function _processPossibleCommandFor_PrintUsageMessage(msg)
     if msg ~= "" then
         _print("Unknown command '" .. msg .. "'.")
         _print("Available commands:")
@@ -245,8 +257,23 @@ SlashCmdList["MHC"] = function(msg)
 
     _print("  /mhc size   <pixels> - Set the diameter of the reticle")
     _print("  /mhc strata <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
-    _print("  /mhc color  <color> [<alpha>] - Set the color of the reticle (e.g. red, blue, dark_gold, etc) with an optional alpha value (0-100)")
 
+    _print("  /mhc alpha  <alpha>           - Set just the alpha transparency of the reticle (0-100)")
+    _print("  /mhc color  <color> [<alpha>] - Set the color of the reticle (e.g. red, blue, dark_gold, etc) with an optional alpha value (0-100)")
+    
+    return false -- meaning that no command was successfully processed
+end
+
+-- add slash commands (optional, for settings)
+SLASH_MHC1 = "/mhc"
+SlashCmdList["MHC"] = function(msg)
+    local msgLowercased = _strlower(_strtrim(msg or "")) --@formatter:off
+
+    return _processPossibleCommandFor_SetColor(msgLowercased) --                most spammed command first
+        or _processPossibleCommandFor_SetSize(msgLowercased)
+        or _processPossibleCommandFor_ShowOrHide(msgLowercased)
+        or _processPossibleCommandFor_SetStrata(msgLowercased) --               least spammed command last
+        or _processPossibleCommandFor_PrintUsageMessage(msg) --@formatter:on    for invalid or empty commands
 end
 
 SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = SlashCmdList["MHC"] -- alias for those who prefer longer commands for the sake of clarity
