@@ -1,5 +1,3 @@
--- MouseHighlightCircle.lua
-
 local _tostring = tostring
 local _tonumber = tonumber
 
@@ -63,7 +61,7 @@ local _namedColors = { --@formatter:off
     VERY_DARK_ORANGE = { 0.80, 0.200, 0.000 }, -- Very dark orange, deep tone (#CC3300)
 } --@formatter:on
 
-local _settings = {
+local _activeSettings = {
     Reticle = {
         Color = _namedColors.GOLD,
         Alpha = 0.7,
@@ -85,34 +83,34 @@ local function _strtrim(input)
     return _strmatch(input or "", '^%s*(.*%S)') or ''
 end
 
-local frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
-frame:Hide() --                     will be shown at the end of the initialization
-frame:SetFrameStrata("TOOLTIP") --  if we need the overlay to be above any and all ui elements    should be what most users want on 4k monitors
+local _frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
+_frame:Hide() --                     will be shown at the end of the initialization
+_frame:SetFrameStrata("TOOLTIP") --  if we need the overlay to be above any and all ui elements    should be what most users want on 4k monitors
 
-local circle = frame:CreateTexture(nil, "OVERLAY")
-circle:Hide() -- will be shown at the end of the initialization
+local _circle = _frame:CreateTexture(nil, "OVERLAY")
+_circle:Hide() -- will be shown at the end of the initialization
 
 local overlayImage = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga"
 
 -- set ring texture (pixelated, white edge, transparent center)
-circle:SetTexture(overlayImage)
+_circle:SetTexture(overlayImage)
 
 -- if the texture is not found _print an error and use a placeholder texture
-if not circle:GetTexture() then
+if not _circle:GetTexture() then
     _print("Mouse-overlay image was not found on disk - make sure the file '" .. overlayImage .. "' exists in the filesystem.")
-    circle:SetTexture(_settings.Reticle.Color[1], _settings.Reticle.Color[2], _settings.Reticle.Color[3], _settings.Reticle.Alpha) -- temporarily a white square (for debugging)
-    circle:SetWidth(32)
-    circle:SetHeight(32)
+    _circle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
+    _circle:SetWidth(32)
+    _circle:SetHeight(32)
 end
 
 -- adjust texture dimensions and position
-circle:SetWidth(_settings.Reticle.Diameter)
-circle:SetHeight(_settings.Reticle.Diameter)
-circle:SetVertexColor(_settings.Reticle.Color[1], _settings.Reticle.Color[2], _settings.Reticle.Color[3], _settings.Reticle.Alpha)
+_circle:SetWidth(_activeSettings.Reticle.Diameter)
+_circle:SetHeight(_activeSettings.Reticle.Diameter)
+_circle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
 
 -- track mouse movements
 local _lastX, _lastY, _uiScale = -999999, -999999, nil
-frame:SetScript("OnUpdate", function()
+_frame:SetScript("OnUpdate", function()
     local x, y = GetCursorPosition()
     if x == nil or y == nil or (abs(x - _lastX) <= 1 and abs(y - _lastY) <= 1) then
         return -- mouse hasnt moved that much   do nothing
@@ -130,12 +128,12 @@ frame:SetScript("OnUpdate", function()
     x = x / _uiScale -- order
     y = y / _uiScale -- order
 
-    -- circle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
-    circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
+    -- _circle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
+    _circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
 end)
 
 
-frame:SetScript("OnEvent", function()
+_frame:SetScript("OnEvent", function()
     local eventSnapshot = event
     
     -- _print("Event: " .. _tostring(eventSnapshot or "nil"))
@@ -146,17 +144,17 @@ frame:SetScript("OnEvent", function()
         _print("Loaded - type |cff33ff99/mhc|r for a list of supported commands.")
     end
 end)
-frame:RegisterEvent("PLAYER_LOGIN")
+_frame:RegisterEvent("PLAYER_LOGIN")
 
 function _processPossibleCommandFor_ShowOrHide(msgLowercased)
     if msgLowercased == "hide" or msgLowercased == "off" then
-        frame:Hide()
+        _frame:Hide()
         _print("Reticle Off")
         return true
     end
 
     if msgLowercased == "show" or msgLowercased == "on" then
-        frame:Show()
+        _frame:Show()
         _print("Reticle On")
         return true
     end
@@ -176,8 +174,8 @@ function _processPossibleCommandFor_SetSize(msgLowercased)
         return true
     end
 
-    circle:SetWidth(newReticleDiameter)
-    circle:SetHeight(newReticleDiameter)
+    _circle:SetWidth(newReticleDiameter)
+    _circle:SetHeight(newReticleDiameter)
     _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels.")
     return true
 end
@@ -202,13 +200,13 @@ function _processPossibleCommandFor_SetStrata(msgLowercased)
         return true
     end
 
-    frame:SetFrameStrata(desiredStrata)
+    _frame:SetFrameStrata(desiredStrata)
     _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
     return true
 end
 
 function _processPossibleCommandFor_SetColor(msgLowercased)
-    local desiredNamedColor, isSetColorCommand = _strgsub(msgLowercased, "^%s*color%s+(%S*).*$", "%1")
+    local desiredNamedColor, isSetColorCommand = _strgsub(msgLowercased, "^%s*color%s*(%S*).*$", "%1")
     if isSetColorCommand == nil or isSetColorCommand == 0 then
         return false
     end
@@ -231,15 +229,36 @@ function _processPossibleCommandFor_SetColor(msgLowercased)
 
         desiredColorAlpha = desiredColorAlpha / 100 -- convert to [0.0, 1.0] range
     else
-        desiredColorAlpha = _settings.Reticle.Alpha -- use the existing alpha value from the current settings
+        desiredColorAlpha = _activeSettings.Reticle.Alpha -- use the existing alpha value from the current settings
     end
 
-    _settings.Reticle.Color = colorRgbArray --     update the current settings
-    _settings.Reticle.Alpha = desiredColorAlpha -- update the current settings
+    _activeSettings.Reticle.Color = colorRgbArray --     update the current settings
+    _activeSettings.Reticle.Alpha = desiredColorAlpha -- update the current settings
 
-    circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
+    _circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
 
     _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
+    return true
+end
+
+function _processPossibleCommandFor_SetAlpha(msgLowercased)
+    local desiredColorAlphaString, isSetAlphaCommand = _strgsub(msgLowercased, "^%s*alpha%s*(%S*)%s*$", "%1")
+    if isSetAlphaCommand == nil or isSetAlphaCommand == 0 then -- optional alpha value
+        return false
+    end
+
+    local desiredColorAlpha = _tonumber(_strtrim(desiredColorAlphaString or ""))
+    if desiredColorAlpha == nil or desiredColorAlpha < 0 or desiredColorAlpha > 100 then
+        _print("Invalid alpha value '" .. _tostring(desiredColorAlpha or "nil") .. "' - must be between [0, 100]")
+        return true
+    end
+
+    desiredColorAlpha = desiredColorAlpha / 100 -- order         convert to [0.0, 1.0] range
+    _activeSettings.Reticle.Alpha = desiredColorAlpha -- order   update the current settings
+
+    _circle:SetAlpha(desiredColorAlpha)
+
+    _print("Reticle alpha set to '" .. _tostring(desiredColorAlpha) .. "'")
     return true
 end
 
@@ -264,20 +283,22 @@ function _processPossibleCommandFor_PrintUsageMessage(msg)
     return false -- meaning that no command was successfully processed
 end
 
--- add slash commands (optional, for settings)
-SLASH_MHC1 = "/mhc"
-SlashCmdList["MHC"] = function(msg)
-    local msgLowercased = _strlower(_strtrim(msg or "")) --@formatter:off
-
-    return _processPossibleCommandFor_SetColor(msgLowercased) --                most spammed command first
-        or _processPossibleCommandFor_SetSize(msgLowercased)
-        or _processPossibleCommandFor_ShowOrHide(msgLowercased)
-        or _processPossibleCommandFor_SetStrata(msgLowercased) --               least spammed command last
-        or _processPossibleCommandFor_PrintUsageMessage(msg) --@formatter:on    for invalid or empty commands
+-- register slash commands
+function _slashCommandHandler(msg)
+    local msgLowercased = _strlower(_strtrim(msg or "")) --          @formatter:off
+    return _processPossibleCommandFor_SetColor(msgLowercased) --                           most spammed command first
+            or _processPossibleCommandFor_SetAlpha(msgLowercased)
+            or _processPossibleCommandFor_SetSize(msgLowercased)
+            or _processPossibleCommandFor_ShowOrHide(msgLowercased)
+            or _processPossibleCommandFor_SetStrata(msgLowercased) --                      least spammed command last
+            or _processPossibleCommandFor_PrintUsageMessage(msg) --      @formatter:on     for invalid or empty commands
 end
 
-SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = SlashCmdList["MHC"] -- alias for those who prefer longer commands for the sake of clarity
+SLASH_MHC1 = "/mhc"
 SLASH_MOUSE_HIGHLIGHT_CIRCLE1 = "/mouse_highlight_circle"
 
-frame:Show()
-circle:Show()
+SlashCmdList["MHC"] = _slashCommandHandler
+SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = _slashCommandHandler -- alias for those who prefer longer commands for the sake of clarity
+
+_frame:Show()
+_circle:Show()
