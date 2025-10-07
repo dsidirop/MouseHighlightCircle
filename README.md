@@ -15,8 +15,12 @@ MouseHighlightCircle is a lightweight addon designed for Turtle WoW (Vanilla WoW
   - `/mhc show` - Same as 'on'
   - `/mhc off`  - Hide the reticle
   - `/mhc hide` - Same as 'off'
-  - `/mhc size`   <pixels> - Set the diameter of the reticle
+  - `/mhc size <pixels>` - Set the diameter of the reticle
+  - `/mhc image <path>`  - Set the texture-image of the reticle (default is pixelring.tga)
+  - `/mhc alpha <0-100>` - Set the transparency of the reticle (0 = invisible, 100 = fully visible)
   - `/mhc strata` <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)
+  - `/mhc reset` - Reset all settings to the most recently saved ones
+  - `/mhc wipeout` - Reset all settings to the failsafe ones
 
 ## Installation
 1. Download the latest release from the [Releases](https://github.com/goamania/MouseHighlightCircle/releases) page.
