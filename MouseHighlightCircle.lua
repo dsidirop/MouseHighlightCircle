@@ -61,11 +61,21 @@ local _namedColors = { --@formatter:off
     VERY_DARK_ORANGE = { 0.80, 0.200, 0.000 }, -- Very dark orange, deep tone (#CC3300)
 } --@formatter:on
 
-local _activeSettings = {
+local _defaultSettings = { -- todo   this should be a per-character saved variable
     Reticle = {
         Color = _namedColors.GOLD,
         Alpha = 0.7,
         Diameter = 32,
+        OverlayImage = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga",
+    },
+}
+
+local _activeSettings = {
+    Reticle = {
+        Color = _defaultSettings.Reticle.Color,
+        Alpha = _defaultSettings.Reticle.Alpha,
+        Diameter = _defaultSettings.Reticle.Diameter,
+        OverlayImage = _defaultSettings.Reticle.OverlayImage,
     },
 }
 
@@ -90,14 +100,12 @@ _frame:SetFrameStrata("TOOLTIP") --  if we need the overlay to be above any and 
 local _circle = _frame:CreateTexture(nil, "OVERLAY")
 _circle:Hide() -- will be shown at the end of the initialization
 
-local overlayImage = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga"
-
 -- set ring texture (pixelated, white edge, transparent center)
-_circle:SetTexture(overlayImage)
+_circle:SetTexture(_activeSettings.Reticle.OverlayImage)
 
 -- if the texture is not found _print an error and use a placeholder texture
 if not _circle:GetTexture() then
-    _print("Mouse-overlay image was not found on disk - make sure the file '" .. overlayImage .. "' exists in the filesystem.")
+    _print("Mouse-overlay image was not found on disk - make sure the file '" .. _activeSettings.Reticle.OverlayImage .. "' exists in the filesystem.")
     _circle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
     _circle:SetWidth(32)
     _circle:SetHeight(32)
