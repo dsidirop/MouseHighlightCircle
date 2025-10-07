@@ -298,6 +298,26 @@ local function _processPossibleCommandFor_SetStrata(msgLowercased)
     return true
 end
 
+local function _processPossibleCommandFor_Toggle(msgLowercased)
+    if msgLowercased ~= "toggle" then
+        return false
+    end
+
+    if _activeSettings.Reticle.Shown then -- todo   consolidate this away to remove duplicate code blocks
+        _rootFrame:Hide()
+        _mouseReticle:Hide()
+        _activeSettings.Reticle.Shown = false
+        _print("mouse-reticle turned off")
+    else
+        _rootFrame:Show()
+        _mouseReticle:Show()
+        _activeSettings.Reticle.Shown = true
+        _print("mouse-reticle turned on")
+    end
+
+    return true
+end
+
 local function _processPossibleCommandFor_SetImagePath(msgLowercased)
     local desiredImagePath, isSetImagePathCommand = _strgsub(msgLowercased, "^%s*[Ii][Mm][Aa][Gg][Ee]%s+(.*)$", "%1") -- the file path can contain spaces in fact so we capture everything after the command
     if isSetImagePathCommand == nil or isSetImagePathCommand == 0 then
@@ -479,6 +499,8 @@ local function _processPossibleCommandFor_PrintUsageMessage(msg)
     _print("  /mhc off       Hide the reticle")
     _print("  /mhc hide      Same as 'off'")
 
+    _print("  /mhc toggle    Toggle the reticle on and off")
+
     _print("  /mhc size      <pixels>    Set the diameter of the reticle")
     _print("  /mhc image     <path>      Set the reticle-image-file")
     _print("  /mhc strata    <strata>    Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
@@ -507,6 +529,7 @@ local function _slashCommandHandler(msg)
             or _processPossibleCommandFor_SetAlpha(msgLowercased)
             or _processPossibleCommandFor_SetSize(msgLowercased)
             or _processPossibleCommandFor_SetImagePath(msg) -- dont pass the lowercased here   paths are case-sensitive
+            or _processPossibleCommandFor_Toggle(msgLowercased)
             or _processPossibleCommandFor_ShowOrHide(msgLowercased)
             or _processPossibleCommandFor_SetStrata(msgLowercased)
             or _processPossibleCommandFor_SaveCurrentSettings(msgLowercased)
