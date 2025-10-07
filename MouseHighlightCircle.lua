@@ -192,8 +192,15 @@ local function _init()
 
     -- if the texture is not found _print an error and use a placeholder texture
     if not _mouseReticle:GetTexture() then
-        _print("Mouse-overlay image was not found on disk - make sure the file '" .. _activeSettings.Reticle.ImagePath .. "' exists in the filesystem.")
-        _mouseReticle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
+        _print("[ERROR] Mouse-overlay image '" .. _activeSettings.Reticle.ImagePath .. "' was not found on disk - reverting to the failsafe image")
+
+        _activeSettings.Reticle.ImagePath = _failsafeSettings.Reticle.ImagePath -- update the current settings
+
+        _mouseReticle:SetTexture(_failsafeSettings.Reticle.ImagePath)
+        if not _mouseReticle:GetTexture() then
+            _print("[CRITICAL ERROR] Failsafe image '" .. _failsafeSettings.Reticle.ImagePath .. "' was not found on disk either - using a plain white square as a last resort")
+            _mouseReticle:SetTexture(1.0, 1.0, 1.0, 1.0) -- plain white square
+        end
     end
 
     -- adjust texture dimensions and position
@@ -288,6 +295,34 @@ local function _processPossibleCommandFor_SetStrata(msgLowercased)
     _activeSettings.Reticle.Strata = desiredStrata --   and then update the current settings
     
     _print("mouse-reticle strata set to '" .. _tostring(desiredStrata) .. "'")
+    return true
+end
+
+local function _processPossibleCommandFor_SetImagePath(msgLowercased)
+    local desiredImagePath, isSetImagePathCommand = _strgsub(msgLowercased, "^%s*[Ii][Mm][Aa][Gg][Ee]%s+(.*)$", "%1") -- the file path can contain spaces in fact so we capture everything after the command
+    if isSetImagePathCommand == nil or isSetImagePathCommand == 0 then
+        return false
+    end
+
+    desiredImagePath = _strtrim(desiredImagePath or "")
+    if desiredImagePath == "" then
+        _print("you must provide an image-path")
+        return true
+    end
+
+    _mouseReticle:SetTexture(nil) --              order   clear the texture of the reticle-frame first to force a reload from disk
+    _mouseReticle:SetTexture(desiredImagePath) -- order   now attempt to set the new image path
+
+    if not _mouseReticle:GetTexture() then --                              check if the new image was found on disk
+        _mouseReticle:SetTexture(_activeSettings.Reticle.ImagePath) --     well we must revert back to the previous image path
+        
+        _print("[ERROR] mouse-overlay image was not found on disk - make sure the file '" .. desiredImagePath .. "' exists in the filesystem.")
+        return true
+    end
+
+    _activeSettings.Reticle.ImagePath = desiredImagePath -- update the current settings
+
+    _print("mouse-reticle image path set to '" .. _tostring(desiredImagePath) .. "'")
     return true
 end
 
@@ -398,6 +433,7 @@ local function _processPossibleCommandFor_PrintUsageMessage(msg)
     _print("  /mhc hide      Same as 'off'")
 
     _print("  /mhc size      <pixels>    Set the diameter of the reticle")
+    _print("  /mhc image     <path>      Set the reticle-image-file")
     _print("  /mhc strata    <strata>    Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
 
     _print("  /mhc alpha     <alpha>             Set just the alpha transparency of the reticle (0-100)")
@@ -422,10 +458,11 @@ local function _slashCommandHandler(msg)
     return _processPossibleCommandFor_SetColor(msgLowercased) --                           most spammed command first
             or _processPossibleCommandFor_SetAlpha(msgLowercased)
             or _processPossibleCommandFor_SetSize(msgLowercased)
+            or _processPossibleCommandFor_SetImagePath(msg) -- dont pass the lowercased here   paths are case-sensitive
             or _processPossibleCommandFor_ShowOrHide(msgLowercased)
             or _processPossibleCommandFor_SetStrata(msgLowercased)
-            or _processPossibleCommandFor_SaveCurrentSettings(msgLowercased) --            least spammed command last
-            or _processPossibleCommandFor_PrintSettings(msgLowercased)
+            or _processPossibleCommandFor_SaveCurrentSettings(msgLowercased)
+            or _processPossibleCommandFor_PrintSettings(msgLowercased) --                  least spammed command last
             or _processPossibleCommandFor_PrintUsageMessage(msg) --      @formatter:on     for invalid or empty commands
 end
 
