@@ -126,14 +126,14 @@ local _failsafeSettings = {
 -- the user must call '/mhc save' explicitly to persist any changes to MouseHighlightCircleSettingsDB
 local _activeSettings
 
-local _frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
-_frame:Hide() -- will be shown at the end of the initialization if the loaded settings say so
+local _rootFrame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
+_rootFrame:Hide() -- will be shown at the end of the initialization if the loaded settings say so
 
-local _circle = _frame:CreateTexture(nil, "OVERLAY")
-_circle:Hide() -- will be shown at the end of the initialization if the loaded settings say so
+local _mouseReticle = _rootFrame:CreateTexture(nil, "OVERLAY")
+_mouseReticle:Hide() -- will be shown at the end of the initialization if the loaded settings say so
 
 local _lastX, _lastY, _uiScale = -999999, -999999, nil
-_frame:SetScript("OnUpdate", function() -- track mouse movements
+_rootFrame:SetScript("OnUpdate", function() -- track mouse movements
     local x, y = GetCursorPosition()
     if x == nil or y == nil or (abs(x - _lastX) <= 1 and abs(y - _lastY) <= 1) then
         return -- mouse hasnt moved that much   do nothing
@@ -151,8 +151,8 @@ _frame:SetScript("OnUpdate", function() -- track mouse movements
     x = x / _uiScale -- order
     y = y / _uiScale -- order
 
-    -- _circle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
-    _circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
+    -- _mouseReticle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
+    _mouseReticle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
 end)
 
 local function _init()
@@ -187,26 +187,26 @@ local function _init()
 
     --- INITIALIZE USING THE SAVED SETTINGS WE JUST LOADED FROM DISK ---
 
-    _frame:SetFrameStrata(_activeSettings.Reticle.Strata)
-    _circle:SetTexture(_activeSettings.Reticle.ImagePath)
+    _rootFrame:SetFrameStrata(_activeSettings.Reticle.Strata)
+    _mouseReticle:SetTexture(_activeSettings.Reticle.ImagePath)
 
     -- if the texture is not found _print an error and use a placeholder texture
-    if not _circle:GetTexture() then
+    if not _mouseReticle:GetTexture() then
         _print("Mouse-overlay image was not found on disk - make sure the file '" .. _activeSettings.Reticle.ImagePath .. "' exists in the filesystem.")
-        _circle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
+        _mouseReticle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
     end
 
     -- adjust texture dimensions and position
-    _circle:SetWidth(_activeSettings.Reticle.Diameter)
-    _circle:SetHeight(_activeSettings.Reticle.Diameter)
-    _circle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
+    _mouseReticle:SetWidth(_activeSettings.Reticle.Diameter)
+    _mouseReticle:SetHeight(_activeSettings.Reticle.Diameter)
+    _mouseReticle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
 
     if _activeSettings.Reticle.Shown then
-        _frame:Show()
-        _circle:Show()
+        _rootFrame:Show()
+        _mouseReticle:Show()
     else
-        _frame:Hide()
-        _circle:Hide()
+        _rootFrame:Hide()
+        _mouseReticle:Hide()
     end
 
     _isAddonLoaded = true
@@ -217,29 +217,29 @@ end
 local function _processPossibleCommandFor_ShowOrHide(msgLowercased)
     if msgLowercased == "hide" or msgLowercased == "off" then
         
-        _frame:Hide()
-        _circle:Hide()        
+        _rootFrame:Hide()
+        _mouseReticle:Hide()        
         if not _activeSettings.Reticle.Shown then
-            -- _print("Reticle is already off")
+            -- _print("mouse-reticle is already off")
             return true
         end
         
         _activeSettings.Reticle.Shown = false
-        _print("Reticle Off")
+        _print("mouse-reticle turned off")
         return true
     end
 
     if msgLowercased == "show" or msgLowercased == "on" then
 
-        _frame:Show()
-        _circle:Show()
+        _rootFrame:Show()
+        _mouseReticle:Show()
         if _activeSettings.Reticle.Shown then
-            -- _print("Reticle is already on")
+            -- _print("mouse-reticle is already on")
             return true
         end
         
         _activeSettings.Reticle.Shown = true
-        _print("Reticle On")
+        _print("mouse-reticle turned on")
         return true
     end
 
@@ -258,9 +258,9 @@ local function _processPossibleCommandFor_SetSize(msgLowercased)
         return true
     end
 
-    _circle:SetWidth(newReticleDiameter)
-    _circle:SetHeight(newReticleDiameter)
-    _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels")
+    _mouseReticle:SetWidth(newReticleDiameter)
+    _mouseReticle:SetHeight(newReticleDiameter)
+    _print("mouse-reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels")
     return true
 end
 
@@ -284,11 +284,10 @@ local function _processPossibleCommandFor_SetStrata(msgLowercased)
         return true
     end
 
-    _frame:SetFrameStrata(desiredStrata) --             attempt to set the new strata
-
+    _rootFrame:SetFrameStrata(desiredStrata) --         attempt to set the new strata
     _activeSettings.Reticle.Strata = desiredStrata --   and then update the current settings
     
-    _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'")
+    _print("mouse-reticle strata set to '" .. _tostring(desiredStrata) .. "'")
     return true
 end
 
@@ -320,12 +319,12 @@ local function _processPossibleCommandFor_SetColor(msgLowercased)
         desiredColorAlpha = _activeSettings.Reticle.Alpha -- use the existing alpha value from the current settings
     end
 
-    _circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha) -- attempt to set the new color
+    _mouseReticle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha) -- attempt to set the new color
 
     _activeSettings.Reticle.Alpha = desiredColorAlpha --                    update the current settings
     _activeSettings.Reticle.Color = _cloneColorRgbArray(colorRgbArray) --   update the current settings
 
-    _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
+    _print("mouse-reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
     return true
 end
 
@@ -345,9 +344,9 @@ local function _processPossibleCommandFor_SetAlpha(msgLowercased)
     desiredColorAlpha = desiredColorAlpha / 100 -- order         convert to [0.0, 1.0] range
     _activeSettings.Reticle.Alpha = desiredColorAlpha -- order   update the current settings
 
-    _circle:SetAlpha(desiredColorAlpha)
+    _mouseReticle:SetAlpha(desiredColorAlpha)
 
-    _print("Reticle alpha set to '" .. _tostring(desiredColorAlpha) .. "'")
+    _print("mouse-reticle alpha set to '" .. _tostring(desiredColorAlpha) .. "'")
     return true
 end
 
@@ -436,7 +435,7 @@ SLASH_MOUSE_HIGHLIGHT_CIRCLE1 = "/mouse_highlight_circle"
 SlashCmdList["MHC"] = _slashCommandHandler
 SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = _slashCommandHandler -- alias for those who prefer longer commands for the sake of clarity
 
-_frame:SetScript("OnEvent", function() -- must be dead last to detect when the addon has been loaded along with its saved-variables
+_rootFrame:SetScript("OnEvent", function() -- must be dead last to detect when the addon has been loaded along with its saved-variables
     local eventSnapshot = event
 
     if eventSnapshot == "ADDON_LOADED" and arg1 == "MouseHighlightCircle" then
@@ -444,4 +443,4 @@ _frame:SetScript("OnEvent", function() -- must be dead last to detect when the a
         return
     end
 end)
-_frame:RegisterEvent("ADDON_LOADED")
+_rootFrame:RegisterEvent("ADDON_LOADED")
