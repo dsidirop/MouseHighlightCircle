@@ -1,3 +1,7 @@
+local CURRENT_SETTINGS_LAYOUT_VERSION = 1
+
+local _type = type
+local _assert = assert
 local _tostring = tostring
 local _tonumber = tonumber
 
@@ -5,6 +9,12 @@ local _strgsub = string.gsub
 local _strupper = string.upper
 local _strlower = string.lower
 local _strmatch = string.match
+
+local _isAddonLoaded = false
+
+local function _strtrim(input)
+    return _strmatch(input or "", '^%s*(.*%S)') or ''
+end
 
 local _namedColors = { --@formatter:off
     RED              = { 1.00, 0.000, 0.000 }, -- Pure red (#FF0000)
@@ -61,25 +71,8 @@ local _namedColors = { --@formatter:off
     VERY_DARK_ORANGE = { 0.80, 0.200, 0.000 }, -- Very dark orange, deep tone (#CC3300)
 } --@formatter:on
 
-local _defaultSettings = { -- todo   this should be a per-character saved variable
-    Reticle = {
-        Color = _namedColors.GOLD,
-        Alpha = 0.7,
-        Diameter = 32,
-        OverlayImage = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga",
-    },
-}
-
-local _activeSettings = {
-    Reticle = {
-        Color = _defaultSettings.Reticle.Color,
-        Alpha = _defaultSettings.Reticle.Alpha,
-        Diameter = _defaultSettings.Reticle.Diameter,
-        OverlayImage = _defaultSettings.Reticle.OverlayImage,
-    },
-}
-
 local function _print(msg, r, g, b, id)
+    -- must be declared after _namedColors!
     DEFAULT_CHAT_FRAME:AddMessage(
             "[|cff33ff99MHC|r] " .. msg,
             r ~= nil and r or _namedColors.LIGHT_GREEN[1],
@@ -89,36 +82,58 @@ local function _print(msg, r, g, b, id)
     )
 end
 
-local function _strtrim(input)
-    return _strmatch(input or "", '^%s*(.*%S)') or ''
+local function _cloneColorRgbArray(colorRgbArray)
+    _ = _type(colorRgbArray) ~= "table" and _assert(false, "Invalid argument to _cloneColorRgbArray() - must be a table")
+
+    return {
+        colorRgbArray[1],
+        colorRgbArray[2],
+        colorRgbArray[3],
+    }
 end
+
+local function _copySettingsFromTo(from, to)
+    _ = _type(from) ~= "table" or _type(to) ~= "table" and _assert(false, "Invalid arguments to _copySettingsFromTo() - both must be tables")
+
+    to._SettingsVersion_ = from._SettingsVersion_
+
+    to.Reticle = to.Reticle or {} -- order    
+    
+    to.Reticle.Shown = from.Reticle.Shown    
+    to.Reticle.Color = _cloneColorRgbArray(from.Reticle.Color)    
+    to.Reticle.Alpha = from.Reticle.Alpha
+    to.Reticle.Strata = from.Reticle.Strata
+    to.Reticle.Diameter = from.Reticle.Diameter
+    to.Reticle.ImagePath = from.Reticle.ImagePath
+    
+    return to
+end
+
+local _failsafeSettings = {
+    _SettingsVersion_ = CURRENT_SETTINGS_LAYOUT_VERSION,
+
+    Reticle = {
+        Shown = true,
+        Color = _namedColors.GOLD,
+        Alpha = 0.7,
+        Strata = "TOOLTIP",
+        Diameter = 32,
+        ImagePath = "Interface\\AddOns\\MouseHighlightCircle\\pixelring.tga",
+    },
+}
+
+-- the _activeSettings are ephemeral and only exist in memory while the addon is loaded
+-- the user must call '/mhc save' explicitly to persist any changes to MouseHighlightCircleSettingsDB
+local _activeSettings
 
 local _frame = CreateFrame("Frame", "MouseHighlightCircleFrame", UIParent)
-_frame:Hide() --                     will be shown at the end of the initialization
-_frame:SetFrameStrata("TOOLTIP") --  if we need the overlay to be above any and all ui elements    should be what most users want on 4k monitors
+_frame:Hide() -- will be shown at the end of the initialization if the loaded settings say so
 
 local _circle = _frame:CreateTexture(nil, "OVERLAY")
-_circle:Hide() -- will be shown at the end of the initialization
+_circle:Hide() -- will be shown at the end of the initialization if the loaded settings say so
 
--- set ring texture (pixelated, white edge, transparent center)
-_circle:SetTexture(_activeSettings.Reticle.OverlayImage)
-
--- if the texture is not found _print an error and use a placeholder texture
-if not _circle:GetTexture() then
-    _print("Mouse-overlay image was not found on disk - make sure the file '" .. _activeSettings.Reticle.OverlayImage .. "' exists in the filesystem.")
-    _circle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
-    _circle:SetWidth(32)
-    _circle:SetHeight(32)
-end
-
--- adjust texture dimensions and position
-_circle:SetWidth(_activeSettings.Reticle.Diameter)
-_circle:SetHeight(_activeSettings.Reticle.Diameter)
-_circle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
-
--- track mouse movements
 local _lastX, _lastY, _uiScale = -999999, -999999, nil
-_frame:SetScript("OnUpdate", function()
+_frame:SetScript("OnUpdate", function() -- track mouse movements
     local x, y = GetCursorPosition()
     if x == nil or y == nil or (abs(x - _lastX) <= 1 and abs(y - _lastY) <= 1) then
         return -- mouse hasnt moved that much   do nothing
@@ -140,29 +155,90 @@ _frame:SetScript("OnUpdate", function()
     _circle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
 end)
 
+local function _init()
+    if not MouseHighlightCircleSettingsDB or _type(MouseHighlightCircleSettingsDB._SettingsVersion_) ~= "number" then
 
-_frame:SetScript("OnEvent", function()
-    local eventSnapshot = event
-    
-    -- _print("Event: " .. _tostring(eventSnapshot or "nil"))
-    
-    if eventSnapshot == "PLAYER_LOGIN" then
-        -- initialize or reset variables that might change on relog
-        _uiScale = nil -- force re-sniping of ui-scale on next mouse-move
-        _print("Loaded - type |cff33ff99/mhc|r for a list of supported commands.")
+        if not MouseHighlightCircleSettingsDB then
+            _print("First time initialization detected - creating default addon-settings")
+        elseif _type(MouseHighlightCircleSettingsDB._SettingsVersion_) ~= "number" then
+            _print("Corrupted settings on disk - resetting settings to failsafe values")
+        end
+
+        MouseHighlightCircleSettingsDB = _copySettingsFromTo(_failsafeSettings, {})
+
+    elseif MouseHighlightCircleSettingsDB._SettingsVersion_ < CURRENT_SETTINGS_LAYOUT_VERSION then
+
+        local tempCopyOfOldSettings = _copySettingsFromTo(MouseHighlightCircleSettingsDB, {})
+
+        -- if we get here it means that the addon was updated to a newer version with a different/enhanced settings layout
+        -- so we must enrich the existing settings with any new properties that might have been added in the meantime
+        --
+        -- ... ... make necessary upgrades here ... ...
+
+        tempCopyOfOldSettings._SettingsVersion_ = CURRENT_SETTINGS_LAYOUT_VERSION
+
+        MouseHighlightCircleSettingsDB = tempCopyOfOldSettings -- keep this dead last
+
+    elseif MouseHighlightCircleSettingsDB._SettingsVersion_ > CURRENT_SETTINGS_LAYOUT_VERSION then
+        _print("[Warning] Settings version on disk is newer than what this addon-version supports (did you upgrade the addon and then re-downgrade it?)")
     end
-end)
-_frame:RegisterEvent("PLAYER_LOGIN")
 
-function _processPossibleCommandFor_ShowOrHide(msgLowercased)
-    if msgLowercased == "hide" or msgLowercased == "off" then
+    _activeSettings = _copySettingsFromTo(MouseHighlightCircleSettingsDB, {}) -- load the settings from disk into the active settings
+
+    --- INITIALIZE USING THE SAVED SETTINGS WE JUST LOADED FROM DISK ---
+
+    _frame:SetFrameStrata(_activeSettings.Reticle.Strata)
+    _circle:SetTexture(_activeSettings.Reticle.ImagePath)
+
+    -- if the texture is not found _print an error and use a placeholder texture
+    if not _circle:GetTexture() then
+        _print("Mouse-overlay image was not found on disk - make sure the file '" .. _activeSettings.Reticle.ImagePath .. "' exists in the filesystem.")
+        _circle:SetTexture(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha) -- temporarily a white square (for debugging)
+    end
+
+    -- adjust texture dimensions and position
+    _circle:SetWidth(_activeSettings.Reticle.Diameter)
+    _circle:SetHeight(_activeSettings.Reticle.Diameter)
+    _circle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
+
+    if _activeSettings.Reticle.Shown then
+        _frame:Show()
+        _circle:Show()
+    else
         _frame:Hide()
+        _circle:Hide()
+    end
+
+    _isAddonLoaded = true
+
+    _print("Addon loaded - type |cff33ff99/mhc|r for a list of supported commands.")
+end
+
+local function _processPossibleCommandFor_ShowOrHide(msgLowercased)
+    if msgLowercased == "hide" or msgLowercased == "off" then
+        
+        _frame:Hide()
+        _circle:Hide()        
+        if not _activeSettings.Reticle.Shown then
+            -- _print("Reticle is already off")
+            return true
+        end
+        
+        _activeSettings.Reticle.Shown = false
         _print("Reticle Off")
         return true
     end
 
     if msgLowercased == "show" or msgLowercased == "on" then
+
         _frame:Show()
+        _circle:Show()
+        if _activeSettings.Reticle.Shown then
+            -- _print("Reticle is already on")
+            return true
+        end
+        
+        _activeSettings.Reticle.Shown = true
         _print("Reticle On")
         return true
     end
@@ -170,7 +246,7 @@ function _processPossibleCommandFor_ShowOrHide(msgLowercased)
     return false
 end
 
-function _processPossibleCommandFor_SetSize(msgLowercased)
+local function _processPossibleCommandFor_SetSize(msgLowercased)
     local desiredReticleDiameterInPixelsStringified, isSetSizeCommand = _strgsub(msgLowercased, "^%s*size%s+(%S*)%s*$", "%1")
     if isSetSizeCommand == nil or isSetSizeCommand == 0 then
         return false
@@ -184,36 +260,39 @@ function _processPossibleCommandFor_SetSize(msgLowercased)
 
     _circle:SetWidth(newReticleDiameter)
     _circle:SetHeight(newReticleDiameter)
-    _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels.")
+    _print("Reticle size set to '" .. _tostring(newReticleDiameter) .. "' pixels")
     return true
 end
 
-function _processPossibleCommandFor_SetStrata(msgLowercased)
+local function _processPossibleCommandFor_SetStrata(msgLowercased)
     local desiredStrata, isSetStrataCommand = _strgsub(msgLowercased, "^%s*strata%s+(%S*)%s*$", "%1")
     if isSetStrataCommand == nil or isSetStrataCommand == 0 then
         return false
     end
 
     desiredStrata = _strupper(_strtrim(desiredStrata or ""))
-    if desiredStrata ~= "BACKGROUND" -- lowest
+    if          desiredStrata ~= "BACKGROUND" --@formatter:off   lowest
             and desiredStrata ~= "LOW"
             and desiredStrata ~= "MEDIUM"
             and desiredStrata ~= "HIGH"
             and desiredStrata ~= "DIALOG"
             and desiredStrata ~= "FULLSCREEN"
             and desiredStrata ~= "FULLSCREEN_DIALOG"
-            and desiredStrata ~= "TOOLTIP" then
-        -- highest
+            and desiredStrata ~= "TOOLTIP" --@formatter:on       highest
+    then        
         _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - must be one of: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
         return true
     end
 
-    _frame:SetFrameStrata(desiredStrata)
-    _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
+    _frame:SetFrameStrata(desiredStrata) --             attempt to set the new strata
+
+    _activeSettings.Reticle.Strata = desiredStrata --   and then update the current settings
+    
+    _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'")
     return true
 end
 
-function _processPossibleCommandFor_SetColor(msgLowercased)
+local function _processPossibleCommandFor_SetColor(msgLowercased)
     local desiredNamedColor, isSetColorCommand = _strgsub(msgLowercased, "^%s*color%s*(%S*).*$", "%1")
     if isSetColorCommand == nil or isSetColorCommand == 0 then
         return false
@@ -228,7 +307,8 @@ function _processPossibleCommandFor_SetColor(msgLowercased)
     local desiredColorAlpha
     local desiredColorAlphaString, hasColorAlpha = _strgsub(msgLowercased, "^%s*color%s+(%S+)%s+(%S+)%s*$", "%2")
 
-    if hasColorAlpha ~= nil and hasColorAlpha > 0 then -- optional alpha value
+    if hasColorAlpha ~= nil and hasColorAlpha > 0 then
+        -- optional alpha value
         desiredColorAlpha = _tonumber(_strtrim(desiredColorAlphaString or ""))
         if desiredColorAlpha == nil or desiredColorAlpha < 0 or desiredColorAlpha > 100 then
             _print("Invalid alpha value '" .. _tostring(desiredColorAlpha or "nil") .. "' - must be between [0, 100]")
@@ -240,18 +320,19 @@ function _processPossibleCommandFor_SetColor(msgLowercased)
         desiredColorAlpha = _activeSettings.Reticle.Alpha -- use the existing alpha value from the current settings
     end
 
-    _activeSettings.Reticle.Color = colorRgbArray --     update the current settings
-    _activeSettings.Reticle.Alpha = desiredColorAlpha -- update the current settings
+    _circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha) -- attempt to set the new color
 
-    _circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
+    _activeSettings.Reticle.Alpha = desiredColorAlpha --                    update the current settings
+    _activeSettings.Reticle.Color = _cloneColorRgbArray(colorRgbArray) --   update the current settings
 
     _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
     return true
 end
 
-function _processPossibleCommandFor_SetAlpha(msgLowercased)
+local function _processPossibleCommandFor_SetAlpha(msgLowercased)
     local desiredColorAlphaString, isSetAlphaCommand = _strgsub(msgLowercased, "^%s*alpha%s*(%S*)%s*$", "%1")
-    if isSetAlphaCommand == nil or isSetAlphaCommand == 0 then -- optional alpha value
+    if isSetAlphaCommand == nil or isSetAlphaCommand == 0 then
+        -- optional alpha value
         return false
     end
 
@@ -270,35 +351,82 @@ function _processPossibleCommandFor_SetAlpha(msgLowercased)
     return true
 end
 
-function _processPossibleCommandFor_PrintUsageMessage(msg)
+local function _processPossibleCommandFor_SaveCurrentSettings(msgLowercased)
+    if msgLowercased ~= "save" then
+        return false
+    end
+
+    MouseHighlightCircleSettingsDB = _copySettingsFromTo(_activeSettings, {})
+
+    _print("Settings saved")
+
+    return true
+end
+
+local function _processPossibleCommandFor_PrintSettings(msg)
+    function printImpl_(title, settings_)
+        _print(title)
+        _print("   ")
+        _print("  - shown:      " .. _tostring(settings_.Reticle.Shown))
+        _print("  - color:      " .. "rgb(" .. _tostring((settings_.Reticle or {}).Color[1] or "<nil>") .. ", " .. _tostring((settings_.Reticle or {}).Color[2] or "<nil>") .. ", " .. _tostring((settings_.Reticle or {}).Color[3] or "<nil>") .. ")")
+        _print("  - alpha:      " .. _tostring(settings_.Reticle.Alpha or "<nil>"))
+        _print("  - strata:     " .. _tostring(settings_.Reticle.Strata or "<nil>"))
+        _print("  - diameter:   " .. _tostring(settings_.Reticle.Diameter or "<nil>"))
+        _print("  - image path: " .. _tostring(settings_.Reticle.ImagePath or "<nil>"))
+        _print("   ")    
+    end
+    
+    if msg ~= "print" then
+        return false
+    end
+
+    printImpl_("Saved settings:", MouseHighlightCircleSettingsDB)
+    printImpl_("Current settings:", _activeSettings)
+
+    return true
+end
+
+local function _processPossibleCommandFor_PrintUsageMessage(msg)
     if msg ~= "" then
         _print("Unknown command '" .. msg .. "'.")
         _print("Available commands:")
     end
 
-    _print("  /mhc on   - Show the reticle")
-    _print("  /mhc show - Same as 'on'")
+    _print("  /mhc on        Show the reticle")
+    _print("  /mhc show      Same as 'on'")
 
-    _print("  /mhc off  - Hide the reticle")
-    _print("  /mhc hide - Same as 'off'")
+    _print("  /mhc off       Hide the reticle")
+    _print("  /mhc hide      Same as 'off'")
 
-    _print("  /mhc size   <pixels> - Set the diameter of the reticle")
-    _print("  /mhc strata <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
+    _print("  /mhc size      <pixels>    Set the diameter of the reticle")
+    _print("  /mhc strata    <strata>    Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
 
-    _print("  /mhc alpha  <alpha>           - Set just the alpha transparency of the reticle (0-100)")
-    _print("  /mhc color  <color> [<alpha>] - Set the color of the reticle (e.g. red, blue, dark_gold, etc) with an optional alpha value (0-100)")
-    
+    _print("  /mhc alpha     <alpha>             Set just the alpha transparency of the reticle (0-100)")
+    _print("  /mhc color     <color> [<alpha>]   Set the color of the reticle (e.g. red, blue, dark_gold, etc) with an optional alpha value (0-100)")
+
+    _print("  /mhc save      Save the current MHC settings to disk (will persist across sessions)")
+    _print("  /mhc print     Print the current MHC settings to chat")
+    -- _print("  /mhc reset     Reset to the most recently saved-settings from disk (discarding any unsaved changes)")
+    -- _print("  /mhc wipeout   Wipe all settings and revert to failsafe defaults")
+
     return false -- meaning that no command was successfully processed
 end
 
 -- register slash commands
-function _slashCommandHandler(msg)
+local function _slashCommandHandler(msg)
+    if not _isAddonLoaded then
+        _print("Addon still loading - please wait a moment and try again")
+        return false
+    end
+    
     local msgLowercased = _strlower(_strtrim(msg or "")) --          @formatter:off
     return _processPossibleCommandFor_SetColor(msgLowercased) --                           most spammed command first
             or _processPossibleCommandFor_SetAlpha(msgLowercased)
             or _processPossibleCommandFor_SetSize(msgLowercased)
             or _processPossibleCommandFor_ShowOrHide(msgLowercased)
-            or _processPossibleCommandFor_SetStrata(msgLowercased) --                      least spammed command last
+            or _processPossibleCommandFor_SetStrata(msgLowercased)
+            or _processPossibleCommandFor_SaveCurrentSettings(msgLowercased) --            least spammed command last
+            or _processPossibleCommandFor_PrintSettings(msgLowercased)
             or _processPossibleCommandFor_PrintUsageMessage(msg) --      @formatter:on     for invalid or empty commands
 end
 
@@ -308,5 +436,12 @@ SLASH_MOUSE_HIGHLIGHT_CIRCLE1 = "/mouse_highlight_circle"
 SlashCmdList["MHC"] = _slashCommandHandler
 SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = _slashCommandHandler -- alias for those who prefer longer commands for the sake of clarity
 
-_frame:Show()
-_circle:Show()
+_frame:SetScript("OnEvent", function() -- must be dead last to detect when the addon has been loaded along with its saved-variables
+    local eventSnapshot = event
+
+    if eventSnapshot == "ADDON_LOADED" and arg1 == "MouseHighlightCircle" then
+        _init()
+        return
+    end
+end)
+_frame:RegisterEvent("ADDON_LOADED")
