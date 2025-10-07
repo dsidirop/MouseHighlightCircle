@@ -363,6 +363,53 @@ local function _processPossibleCommandFor_SetColor(msgLowercased)
     return true
 end
 
+local function _processPossibleCommandFor_ResetOrWipeout(msgLowercased)
+    if msgLowercased ~= "reset" and msgLowercased ~= "wipeout" then
+        return false
+    end
+
+    if msgLowercased == "wipeout" then
+        MouseHighlightCircleSettingsDB = _copySettingsFromTo(_failsafeSettings, {}) -- reset the saved settings on disk to the failsafe defaults
+    end
+    
+    _copySettingsFromTo(MouseHighlightCircleSettingsDB, _activeSettings) -- reload the settings from disk into the active settings
+
+    --- RE-INITIALIZE USING THE SAVED SETTINGS WE JUST LOADED FROM DISK ---
+
+    _rootFrame:SetFrameStrata(_activeSettings.Reticle.Strata) -- todo   consolidate away this duplicate code-blocks with the ones in the _init() function
+    _mouseReticle:SetTexture(_activeSettings.Reticle.ImagePath)
+
+    -- if the texture is not found _print an error and use a placeholder texture
+    if not _mouseReticle:GetTexture() then
+        _print("[ERROR] Mouse-overlay image '" .. _activeSettings.Reticle.ImagePath .. "' was not found on disk - reverting to the failsafe image")
+
+        _activeSettings.Reticle.ImagePath = _failsafeSettings.Reticle.ImagePath -- update the current settings
+
+        _mouseReticle:SetTexture(_failsafeSettings.Reticle.ImagePath)
+        if not _mouseReticle:GetTexture() then
+            _print("[CRITICAL ERROR] Failsafe image '" .. _failsafeSettings.Reticle.ImagePath .. "' was not found on disk either - using a plain white square as a last resort")
+            _mouseReticle:SetTexture(1.0, 1.0, 1.0, 1.0) -- plain white square
+        end
+    end
+
+    -- adjust texture dimensions and position
+    _mouseReticle:SetWidth(_activeSettings.Reticle.Diameter)
+    _mouseReticle:SetHeight(_activeSettings.Reticle.Diameter)
+    _mouseReticle:SetVertexColor(_activeSettings.Reticle.Color[1], _activeSettings.Reticle.Color[2], _activeSettings.Reticle.Color[3], _activeSettings.Reticle.Alpha)
+
+    if _activeSettings.Reticle.Shown then
+        _rootFrame:Show()
+        _mouseReticle:Show()
+    else
+        _rootFrame:Hide()
+        _mouseReticle:Hide()
+    end
+
+    _print("Settings reset to " .. (msgLowercased == "wipeout" and "failsafe defaults" or "most recently saved settings from disk"))
+
+    return true
+end
+
 local function _processPossibleCommandFor_SetAlpha(msgLowercased)
     local desiredColorAlphaString, isSetAlphaCommand = _strgsub(msgLowercased, "^%s*alpha%s*(%S*)%s*$", "%1")
     if isSetAlphaCommand == nil or isSetAlphaCommand == 0 then
@@ -441,8 +488,8 @@ local function _processPossibleCommandFor_PrintUsageMessage(msg)
 
     _print("  /mhc save      Save the current MHC settings to disk (will persist across sessions)")
     _print("  /mhc print     Print the current MHC settings to chat")
-    -- _print("  /mhc reset     Reset to the most recently saved-settings from disk (discarding any unsaved changes)")
-    -- _print("  /mhc wipeout   Wipe all settings and revert to failsafe defaults")
+    _print("  /mhc reset     Reset to the most recently saved-settings from disk (discarding any unsaved changes)")
+    _print("  /mhc wipeout   Wipe all settings and revert to failsafe defaults")
 
     return false -- meaning that no command was successfully processed
 end
@@ -456,6 +503,7 @@ local function _slashCommandHandler(msg)
     
     local msgLowercased = _strlower(_strtrim(msg or "")) --          @formatter:off
     return _processPossibleCommandFor_SetColor(msgLowercased) --                           most spammed command first
+            or _processPossibleCommandFor_ResetOrWipeout(msgLowercased)
             or _processPossibleCommandFor_SetAlpha(msgLowercased)
             or _processPossibleCommandFor_SetSize(msgLowercased)
             or _processPossibleCommandFor_SetImagePath(msg) -- dont pass the lowercased here   paths are case-sensitive
