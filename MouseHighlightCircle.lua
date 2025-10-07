@@ -191,12 +191,44 @@ SlashCmdList["MHC"] = function(msg)
                 and desiredStrata ~= "FULLSCREEN_DIALOG"
                 and desiredStrata ~= "TOOLTIP" then
             -- highest
-            _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - please provide one of the following values: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
+            _print("Invalid strata value '" .. _tostring(desiredStrata or "nil") .. "' - must be one of: background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip")
             return
         end
 
         frame:SetFrameStrata(desiredStrata)
         _print("Reticle strata set to '" .. _tostring(desiredStrata) .. "'.")
+        return
+    end
+
+    local desiredNamedColor, isSetColorCommand = _strgsub(msg, "^%s*color%s+(%S*).*$", "%1")
+    if isSetColorCommand ~= nil and isSetColorCommand > 0 then
+        local colorRgbArray = _namedColors[_strupper(_strtrim(desiredNamedColor or ""))]
+        if colorRgbArray == nil then
+            _print("Unsupported named-color '" .. _tostring(desiredNamedColor or "nil") .. "' - must be one of the supported color names")
+            return
+        end
+        
+        _settings.Reticle.Color = colorRgbArray -- update the current settings
+
+        local desiredColorAlpha        
+        local desiredColorAlphaString, hasColorAlpha = _strgsub(msg, "^%s*color%s+(%S+)%s+(%S+)%s*$", "%2")
+        
+        _print("** hasColorAlpha: " .. _tostring(hasColorAlpha or "nil") .. ", desiredColorAlphaString=" .. _tostring(desiredColorAlphaString or "nil")) -- debug
+        
+        if hasColorAlpha ~= nil and hasColorAlpha > 0 then -- optional alpha value
+            desiredColorAlpha = _tonumber(_strtrim(desiredColorAlphaString or ""))
+            if desiredColorAlpha == nil or desiredColorAlpha < 0 or desiredColorAlpha > 100 then
+                _print("Invalid alpha value '" .. _tostring(desiredColorAlpha or "nil") .. "' - must be between [0, 100]")
+                return
+            end
+
+            desiredColorAlpha = desiredColorAlpha / 100 -- convert to [0.0, 1.0] range
+            _settings.Reticle.Alpha = desiredColorAlpha -- and update the current settings
+        end
+        
+        circle:SetVertexColor(colorRgbArray[1], colorRgbArray[2], colorRgbArray[3], desiredColorAlpha)
+        
+        _print("Reticle color set to '" .. _tostring(desiredNamedColor) .. "'" .. (hasColorAlpha ~= nil and hasColorAlpha > 0 and (" with alpha " .. _tostring(desiredColorAlpha)) or ""))
         return
     end
 
@@ -213,6 +245,8 @@ SlashCmdList["MHC"] = function(msg)
 
     _print("  /mhc size   <pixels> - Set the diameter of the reticle")
     _print("  /mhc strata <strata> - Set the frame strata of the reticle (background, low, medium, high, dialog, fullscreen, fullscreen_dialog, tooltip)")
+    _print("  /mhc color  <color> [<alpha>] - Set the color of the reticle (e.g. red, blue, dark_gold, etc) with an optional alpha value (0-100)")
+
 end
 
 SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = SlashCmdList["MHC"] -- alias for those who prefer longer commands for the sake of clarity
