@@ -545,8 +545,9 @@ SlashCmdList["MOUSE_HIGHLIGHT_CIRCLE"] = _slashCommandHandler -- alias for those
 
 _rootFrame:SetScript("OnEvent", function() -- must be dead last to detect when the addon has been loaded along with its saved-variables
     local eventSnapshot = event
+    local addonThatJustGotLoaded = arg1
 
-    if eventSnapshot == "ADDON_LOADED" and arg1 == "MouseHighlightCircle" then
+    if eventSnapshot == "ADDON_LOADED" and addonThatJustGotLoaded == "MouseHighlightCircle" then
         _init()
         return
     end
