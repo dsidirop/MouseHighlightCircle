@@ -37,4 +37,4 @@ Developed with ❤️ by goamania for the Turtle WoW community.
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-I don’t charge for MouseHighlightCircle—it’s free for Turtle WoW players! But I do love coffee ☕. If you’d like to support me, you can buy me a coffee here: BTC ADDRESSS: bc1qlaurnxw4uxslr35jyxl9uzp3m7z02krwxzt9ef / Thanks for using the addon! 😊
+I don’t charge for MouseHighlightCircle, it’s free for Turtle WoW players! But I do love coffee ☕. If you’d like to support me, you can buy me a coffee here: BTC ADDRESSS: bc1qlaurnxw4uxslr35jyxl9uzp3m7z02krwxzt9ef / Thanks for using the addon! 😊
