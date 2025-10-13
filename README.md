@@ -19,7 +19,7 @@ MouseHighlightCircle is a lightweight addon designed for Turtle WoW (Vanilla WoW
 2. Extract the `MouseHighlightCircle` folder into your `World of Warcraft/Interface/AddOns/` directory.
 3. Ensure the `pixelring.tga` texture file is included in the addon folder (required for the ring effect).
 4. Launch Turtle WoW, enable the addon in the AddOns menu, and log in.
-5. Use `/mhc show` in-game to display the cursor ring.
+5. Use `/mhc show` in-game to display the cursor ring. Use `/mhc hide` in-game to hide the cursor ring.
 
 ## Texture Information
 The addon uses a single TGA texture (`pixelring.tga`) for the pixelated white ring. This texture must be a 64x64 pixel image with a transparent center and a white, pixelated border. If you need to customize the ring’s appearance, you can replace the `pixelring.tga` file with your own design (maintain the same dimensions and transparency).
