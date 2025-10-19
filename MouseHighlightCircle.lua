@@ -132,15 +132,19 @@ _rootFrame:Hide() -- will be shown at the end of the initialization if the loade
 local _mouseReticle = _rootFrame:CreateTexture(nil, "OVERLAY")
 _mouseReticle:Hide() -- will be shown at the end of the initialization if the loaded settings say so
 
+local _abs = abs -- snapshot
+local _uiParent = UIParent -- snapshot
+local _getCursorPosition = GetCursorPosition -- snapshot
+
 local _lastX, _lastY, _uiScale = -999999, -999999, nil
 _rootFrame:SetScript("OnUpdate", function() -- track mouse movements
-    local x, y = GetCursorPosition()
-    if x == nil or y == nil or (abs(x - _lastX) <= 1 and abs(y - _lastY) <= 1) then
+    local x, y = _getCursorPosition()
+    if x == nil or y == nil or (_abs(x - _lastX) <= 1 and _abs(y - _lastY) <= 1) then
         return -- mouse hasnt moved that much   do nothing
     end
 
     if _uiScale == nil then
-        _uiScale = UIParent:GetEffectiveScale() -- snipe once
+        _uiScale = _uiParent:GetEffectiveScale() -- snipe once
         if _uiScale == nil or _uiScale <= 0 then
             _uiScale = 1 -- failsafe
             _print("[WARNING] GetEffectiveScale() returned unusable value '" .. _tostring(_uiScale or "nil") .. "' - assuming ui-scale=1 and hoping for the best but please report this incident and what you did to cause it.")
