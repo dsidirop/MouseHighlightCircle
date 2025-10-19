@@ -136,27 +136,49 @@ local _abs = abs -- snapshot
 local _uiParent = UIParent -- snapshot
 local _getCursorPosition = GetCursorPosition -- snapshot
 
-local _lastX, _lastY, _uiScale = -999999, -999999, nil
+local function _getEffectiveUIScaleSafely()
+    local uiScale = _uiParent:GetEffectiveScale()
+    if uiScale == nil or uiScale <= 0 then
+        uiScale = 1 -- failsafe
+        _print("[WARNING] GetEffectiveScale() returned unusable value '" .. _tostring(uiScale or "nil") .. "' - assuming ui-scale=1 and hoping for the best but please report this incident and what you did to cause it.")
+    end
+    
+    return uiScale
+end
+
+local _lastX, _lastY, _uiScale, _x, _y, _global = -999999, -999999, nil, nil, nil, (_G or getfenv(0))
+
+local _interval, _elapsedTimeSinceLastFiring = 0.025, 0.0 -- update the cursor circle every 25ms basically
 _rootFrame:SetScript("OnUpdate", function() -- track mouse movements
-    local x, y = _getCursorPosition()
-    if x == nil or y == nil or (_abs(x - _lastX) <= 1 and _abs(y - _lastY) <= 1) then
+    _elapsedTimeSinceLastFiring = _elapsedTimeSinceLastFiring + _global.arg1 --00
+    if _elapsedTimeSinceLastFiring < _interval then
+        return
+    end
+
+    repeat
+        _elapsedTimeSinceLastFiring = _elapsedTimeSinceLastFiring - _interval --10
+    until _elapsedTimeSinceLastFiring < _interval
+    
+    _x, _y = _getCursorPosition()
+    if _x == nil or _y == nil or (_abs(_x - _lastX) <= 1 and _abs(_y - _lastY) <= 1) then
         return -- mouse hasnt moved that much   do nothing
     end
 
     if _uiScale == nil then
-        _uiScale = _uiParent:GetEffectiveScale() -- snipe once
-        if _uiScale == nil or _uiScale <= 0 then
-            _uiScale = 1 -- failsafe
-            _print("[WARNING] GetEffectiveScale() returned unusable value '" .. _tostring(_uiScale or "nil") .. "' - assuming ui-scale=1 and hoping for the best but please report this incident and what you did to cause it.")
-        end
+        _uiScale = _getEffectiveUIScaleSafely() -- snipe once
     end
 
-    _lastX, _lastY = x, y -- order
-    x = x / _uiScale -- order
-    y = y / _uiScale -- order
+    _lastX, _lastY = _x, _y -- order
 
     -- _mouseReticle:ClearAllPoints() -- doesnt seem to be truly necessary in this particular case
-    _mouseReticle:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y) -- place the ring around the mouse cursor
+
+    _mouseReticle:SetPoint("CENTER", _uiParent, "BOTTOMLEFT", _x / _uiScale, _y / _uiScale) -- place the ring around the mouse cursor
+
+    -- 00  arg1 is the elapsed time since the previous callback invocation   there is no other way to get this value
+    --     other than grabbing it from the global environment like we do here   very strange but true
+    --
+    -- 10  _elapsedTimeSinceLastFiring >= _interval   its important to trim down the excess time as much as it is
+    --     necessary to ensure it goes beneath the interval threshold
 end)
 
 local function _init()
